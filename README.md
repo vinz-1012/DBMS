@@ -1,6 +1,4 @@
-# 🚀 UTE EXPRESS — HỆ THỐNG QUẢN LÝ VẬN CHUYỂN & GIAO NHẬN LOGISTICS
-
-> **Phiên bản tích hợp**: Spring Boot 4.x + Spring Security + JWT + PostgreSQL + Thymeleaf  
+# 🚀 UTE EXPRESS — HỆ THỐNG QUẢN LÝ VẬN CHUYỂN & GIAO NH> **Phiên bản tích hợp**: Spring Boot 4.x + Spring Security + JWT + Microsoft SQL Server + Thymeleaf  
 > **Trạng thái**: Đã hợp nhất đầy đủ tất cả các phân hệ: **Xác thực (Auth)**, **Bưu cục (Post Office)**, **Tài chính & Thanh toán**, **Điều phối (Dispatcher)**, **Tài xế (Driver)**, và **Quản trị hệ thống (Admin)**.
 
 ---
@@ -8,10 +6,10 @@
 ## 🔑 1. DANH SÁCH TÀI KHOẢN & MẬT KHẨU ĐĂNG NHẬP THEO TỪNG ROLE
 
 > 💡 **Mật khẩu dùng chung cho tất cả các tài khoản thử nghiệm**: `123456`  
-> *(Toàn bộ mật khẩu đã được mã hóa bằng chuẩn BCrypt trong cơ sở dữ liệu PostgreSQL).*
+> *(Toàn bộ mật khẩu đã được mã hóa bằng chuẩn BCrypt trong cơ sở dữ liệu SQL Server).*
 
 | STT | Vai trò (Role) | Mã Vai trò | Tên đăng nhập | Mật khẩu | Họ và tên | Chức vụ / Đơn vị | Trang Dashboard chuyển hướng |
-| :---: | :--- | :---: | :---: | :---: | :--- | :--- | :--- |
+| :---: | :--- | :--- :---: | :---: | :---: | :--- | :--- | :--- |
 | **1** | **Quản trị viên** | `ADMIN` | `admin` | `123456` | Quản trị viên hệ thống | Ban Quản trị UTE Express | `/admin/dashboard` |
 | **2** | **Nhân viên Bưu cục** | `NVBC` | `nvbc01` | `123456` | Phạm Hoàng Nam | Bưu cục Thủ Đức (`KHO01`) | `/post-office/dashboard` |
 | **3** | **Nhân viên Bưu cục** | `NVBC` | `nvbc02` | `123456` | Võ Thị Lan | Bưu cục Đà Nẵng (`KHO03`) | `/post-office/dashboard` |
@@ -46,29 +44,20 @@ Hệ thống được bảo vệ bằng mô hình **Stateless JWT Authentication
 
 ---
 
-## 🗄️ 3. HƯỚNG DẪN KHỞI TẠO & CHẠY LẠI CƠ SỞ DỮ LIỆU POSTGRESQL
+## 🗄️ 3. HƯỚNG DẪN KHỞI TẠO CƠ SỞ DỮ LIỆU SQL SERVER (DATABASE V2)
 
-Cơ sở dữ liệu: `ute_express` trên cổng `5432`.  
-Thứ tự thực thi các script SQL trong thư mục `database/`:
+Cơ sở dữ liệu: `UTEEXPRESS` trên SQL Server (cổng `1433`).  
+Thực thi script cài đặt trong thư mục `databasev2/`:
 
 ```
-database/
-├── 1. schema.sql          # Khởi tạo bảng, khóa chính, khóa ngoại, sequence, ràng buộc
-├── 2. logic.sql           # Cài đặt Stored Procedures, Functions tính cước, Trigger kiểm tra
-├── 3. seed_and_test.sql   # Nạp dữ liệu mẫu ban đầu (Vai trò, Kho, Tuyến, Người dùng,...)
-└── 4. seed_extra.sql      # Dữ liệu mở rộng cho các chuyến xe, kiện hàng và kịch bản test
+databasev2/
+├── 01_UTEEXPRESS_Full_Install.sql    # Toàn diện Schema, Logic, Trigger, SP, Transaction và Seed Data chuẩn
+└── 02_UTEEXPRESS_Test_And_Demo.sql   # Bộ Unit Test T-SQL kiểm thử toàn vẹn
 ```
 
-### Lệnh chạy nhanh qua terminal (PostgreSQL 16/17/18):
-
+### Lệnh chạy nạp lại Database qua SQLCMD:
 ```powershell
-$env:PGPASSWORD='123456'
-$PSQL='C:\Program Files\PostgreSQL\18\bin\psql.exe'
-
-& $PSQL -U postgres -d ute_express -f database/schema.sql
-& $PSQL -U postgres -d ute_express -f database/logic.sql
-& $PSQL -U postgres -d ute_express -f database/seed_and_test.sql
-& $PSQL -U postgres -d ute_express -f database/seed_extra.sql
+sqlcmd -S localhost -U sa -P 123456 -C -i databasev2/01_UTEEXPRESS_Full_Install.sql
 ```
 
 ---
@@ -77,8 +66,8 @@ $PSQL='C:\Program Files\PostgreSQL\18\bin\psql.exe'
 
 ### Yêu cầu môi trường:
 - **Java**: OpenJDK 17 trở lên (đã kiểm thử tương thích Java 17, 21, 25).
-- **Maven**: Tích hợp sẵn qua Maven Wrapper (`./mvnw`).
-- **PostgreSQL**: Đang chạy tại `localhost:5432` với Database `ute_express`.
+- **Maven**: Tích hợp sẵn qua Maven Wrapper (`./mvnw` / `mvnw.cmd`).
+- **SQL Server**: Đang chạy tại `localhost:1433` với Database `UTEEXPRESS` (tài khoản `sa` / `123456`).
 
 ### Khởi động ứng dụng:
 ```powershell

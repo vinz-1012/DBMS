@@ -314,12 +314,12 @@ public class TaiXeService {
             JOIN chuyen_giao c ON c.ma_chuyen = x.ma_chuyen
             JOIN kien_hang k ON k.ma_kien = x.ma_kien
             LEFT JOIN don_hang d ON d.ma_dh = k.ma_dh
-            LEFT JOIN LATERAL (
-                SELECT ls_inner.thoi_gian 
+            OUTER APPLY (
+                SELECT TOP 1 ls_inner.thoi_gian 
                 FROM lich_su_trang_thai ls_inner 
                 WHERE ls_inner.ma_dh = k.ma_dh AND ls_inner.ma_tt = 'TT06'
-                ORDER BY ls_inner.thoi_gian DESC LIMIT 1
-            ) ls ON true
+                ORDER BY ls_inner.thoi_gian DESC
+            ) ls
             WHERE c.ma_tx = ? AND x.trang_thai = 'Đã giao'
             ORDER BY thoi_gian_giao DESC, x.thoi_gian_gan DESC
         """;
@@ -393,8 +393,8 @@ public class TaiXeService {
 
         // Lấy chuyến đang chạy hoặc chuyến mới nhất của tài xế
         List<String> tripIds = jdbcTemplate.query(
-                "SELECT ma_chuyen FROM chuyen_giao WHERE ma_tx = ? " +
-                "ORDER BY CASE WHEN trang_thai = 'Đang đi' THEN 1 WHEN trang_thai = 'Chưa đi' THEN 2 ELSE 3 END, ngay_xuat_phat DESC LIMIT 1",
+                "SELECT TOP 1 ma_chuyen FROM chuyen_giao WHERE ma_tx = ? " +
+                "ORDER BY CASE WHEN trang_thai = 'Đang đi' THEN 1 WHEN trang_thai = 'Chưa đi' THEN 2 ELSE 3 END, ngay_xuat_phat DESC",
                 (rs, rowNum) -> rs.getString("ma_chuyen"), maTx);
 
         ChuyenGiaoChiTietDTO chuyenHienTai = null;
@@ -468,7 +468,7 @@ public class TaiXeService {
         if (remaining != null && remaining == 0) {
             try {
                 jdbcTemplate.execute((java.sql.Connection con) -> {
-                    try (java.sql.CallableStatement cs = con.prepareCall("CALL sp_hoan_thanh_chuyen(?, ?)")) {
+                    try (java.sql.CallableStatement cs = con.prepareCall("{call sp_hoan_thanh_chuyen(?, ?)}")) {
                         cs.setString(1, maChuyen);
                         cs.setString(2, (maNd != null && !maNd.isBlank()) ? maNd : "ND0003");
                         cs.execute();
@@ -498,7 +498,7 @@ public class TaiXeService {
 
         try {
             jdbcTemplate.execute((java.sql.Connection con) -> {
-                try (java.sql.CallableStatement cs = con.prepareCall("CALL sp_hoan_thanh_chuyen(?, ?)")) {
+                try (java.sql.CallableStatement cs = con.prepareCall("{call sp_hoan_thanh_chuyen(?, ?)}")) {
                     cs.setString(1, maChuyen);
                     cs.setString(2, (maNd != null && !maNd.isBlank()) ? maNd : "ND0003");
                     cs.execute();

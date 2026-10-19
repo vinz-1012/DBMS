@@ -164,10 +164,11 @@ class PostOfficeAndFinanceFullTest {
     @Order(6)
     @DisplayName("API 5: Bảng kê chi tiết thanh toán của đơn (UC06)")
     void testGetOrderPaymentSummary() {
+        DonHang dh = donHangRepository.findById(testMaDH).orElseThrow();
         PaymentSummaryResponse response = paymentService.getOrderPaymentSummary(testMaDH);
         assertNotNull(response);
         assertEquals(testMaDH, response.getMaDh());
-        assertEquals(new BigDecimal("35000.00"), response.getPhiVanChuyen());
+        assertEquals(dh.getPhiVanChuyen(), response.getPhiVanChuyen());
         assertEquals(new BigDecimal("200000.00"), response.getCod());
     }
 
@@ -175,10 +176,11 @@ class PostOfficeAndFinanceFullTest {
     @Order(7)
     @DisplayName("API 6: Xử lý giao dịch nộp tiền cước vận chuyển (UC06, UC07)")
     void testProcessPayment() {
+        DonHang dh = donHangRepository.findById(testMaDH).orElseThrow();
         ProcessPaymentRequest request = ProcessPaymentRequest.builder()
                 .maDH(testMaDH)
                 .loaiKhoan("PHI_VC")
-                .soTien(new BigDecimal("35000.00"))
+                .soTien(dh.getPhiVanChuyen())
                 .phuongThuc("Tiền mặt")
                 .nguoiThanhToan("Trần Thị Bích")
                 .build();

@@ -108,7 +108,7 @@ public class DieuPhoiService {
     public String taoChuyenGiao(TaoChuyenGiaoRequest request) {
         try {
             return jdbcTemplate.execute((java.sql.Connection con) -> {
-                try (java.sql.CallableStatement cs = con.prepareCall("CALL sp_tao_chuyen_giao(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                try (java.sql.CallableStatement cs = con.prepareCall("{call sp_tao_chuyen_giao(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")) {
                     cs.setString(1, request.getLoai());
                     cs.setString(2, request.getMaTuyen());
                     cs.setString(3, request.getMaKhoGiao());
@@ -524,13 +524,12 @@ public class DieuPhoiService {
                 cg.trang_thai AS trang_thai_chuyen
             FROM tai_xe tx
             LEFT JOIN nguoi_dung nd ON tx.ma_nd = nd.ma_nd
-            LEFT JOIN LATERAL (
-                SELECT c.ma_chuyen, c.trang_thai
+            OUTER APPLY (
+                SELECT TOP 1 c.ma_chuyen, c.trang_thai
                 FROM chuyen_giao c
                 WHERE c.ma_tx = tx.ma_tx AND c.trang_thai IN ('Chưa đi', 'Đang đi')
                 ORDER BY CASE WHEN c.trang_thai = 'Đang đi' THEN 1 ELSE 2 END
-                LIMIT 1
-            ) cg ON true
+            ) cg
             WHERE tx.ma_tx NOT IN (
                 SELECT c2.ma_tx FROM chuyen_giao c2 WHERE c2.trang_thai = 'Đang đi'
             )
@@ -573,13 +572,12 @@ public class DieuPhoiService {
                 pt.trang_thai,
                 cg.ma_chuyen AS chuyen_hien_tai
             FROM phuong_tien pt
-            LEFT JOIN LATERAL (
-                SELECT c.ma_chuyen
+            OUTER APPLY (
+                SELECT TOP 1 c.ma_chuyen
                 FROM chuyen_giao c
                 WHERE c.ma_pt = pt.ma_pt AND c.trang_thai IN ('Chưa đi', 'Đang đi')
                 ORDER BY CASE WHEN c.trang_thai = 'Đang đi' THEN 1 ELSE 2 END
-                LIMIT 1
-            ) cg ON true
+            ) cg
             WHERE pt.trang_thai = 'Sẵn sàng'
               AND pt.ma_pt NOT IN (
                   SELECT c2.ma_pt FROM chuyen_giao c2 WHERE c2.trang_thai = 'Đang đi'
@@ -633,7 +631,7 @@ public class DieuPhoiService {
 
         if (req.getMaNd() != null && !req.getMaNd().isBlank()) {
             try {
-                jdbcTemplate.queryForList("SELECT fn_dat_phien(?, ?)", req.getMaNd(), "Cập nhật phân công chuyến " + maChuyen);
+                jdbcTemplate.update("EXEC sp_dat_phien ?, ?", req.getMaNd(), "Cập nhật phân công chuyến " + maChuyen);
             } catch (Exception ignored) {
             }
         }
@@ -664,7 +662,7 @@ public class DieuPhoiService {
 
         try {
             jdbcTemplate.execute((java.sql.Connection con) -> {
-                try (java.sql.CallableStatement cs = con.prepareCall("CALL sp_huy_chuyen(?, ?)")) {
+                try (java.sql.CallableStatement cs = con.prepareCall("{call sp_huy_chuyen(?, ?)}")) {
                     cs.setString(1, maChuyen);
                     cs.setString(2, (maNd != null && !maNd.isBlank()) ? maNd : "ND0003");
                     cs.execute();
@@ -704,7 +702,7 @@ public class DieuPhoiService {
         if ("Chưa đi".equals(cg.getTrangThai())) {
             try {
                 jdbcTemplate.execute((java.sql.Connection con) -> {
-                    try (java.sql.CallableStatement cs = con.prepareCall("CALL sp_huy_chuyen(?, ?)")) {
+                    try (java.sql.CallableStatement cs = con.prepareCall("{call sp_huy_chuyen(?, ?)}")) {
                         cs.setString(1, maChuyen);
                         cs.setString(2, (maNd != null && !maNd.isBlank()) ? maNd : "ND0003");
                         cs.execute();
@@ -740,7 +738,7 @@ public class DieuPhoiService {
 
         try {
             jdbcTemplate.execute((java.sql.Connection con) -> {
-                try (java.sql.CallableStatement cs = con.prepareCall("CALL sp_hoan_thanh_chuyen(?, ?)")) {
+                try (java.sql.CallableStatement cs = con.prepareCall("{call sp_hoan_thanh_chuyen(?, ?)}")) {
                     cs.setString(1, maChuyen);
                     cs.setString(2, (maNd != null && !maNd.isBlank()) ? maNd : "ND0003");
                     cs.execute();
