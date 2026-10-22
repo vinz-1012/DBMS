@@ -1,10 +1,14 @@
-﻿-- =========================================================================================
+-- =========================================================================================
 -- ĐỒ ÁN HỆ QUẢN TRỊ CƠ SỞ DỮ LIỆU: HỆ THỐNG QUẢN LÝ VẬN CHUYỂN UTEEXPRESS (SQL SERVER)
 -- FILE 02: KỊCH BẢN KIỂM THỬ TỰ ĐỘNG (UNIT TEST) & MINH CHỨNG HIỆU NĂNG INDEX
 -- Lưu ý: Toàn bộ kịch bản test chạy trong Transaction và tự động ROLLBACK ở cuối,
 -- đảm bảo giữ nguyên vẹn 100% dữ liệu mẫu của hệ thống sau khi test.
 -- =========================================================================================
 USE UTEEXPRESS;
+GO
+SET ANSI_NULLS ON;
+GO
+SET QUOTED_IDENTIFIER ON;
 GO
 
 CREATE OR ALTER PROCEDURE #assert_true @p_ten NVARCHAR(200), @p_dk BIT AS

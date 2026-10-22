@@ -40,7 +40,7 @@ public interface ChuyenGiaoRepository extends JpaRepository<ChuyenGiao, String> 
      * Gán kiện vào chuyến giao.
      */
     @Modifying
-    @Query(value = "EXEC sp_gan_kien_vao_chuyen :maChuyen, :maKien, :maNd", nativeQuery = true)
+    @Query(value = "EXEC dbo.sp_gan_kien_vao_chuyen :maChuyen, :maKien, :maNd", nativeQuery = true)
     void ganKienVaoChuyen(
             @Param("maChuyen") String maChuyen,
             @Param("maKien") String maKien,
@@ -51,7 +51,7 @@ public interface ChuyenGiaoRepository extends JpaRepository<ChuyenGiao, String> 
      * Tài xế quét kiện lên xe.
      */
     @Modifying
-    @Query(value = "EXEC sp_quet_kien :maChuyen, :maKien, :maNd, :ghiChu", nativeQuery = true)
+    @Query(value = "EXEC dbo.sp_quet_kien :maChuyen, :maKien, :maNd, :ghiChu", nativeQuery = true)
     void quetKien(
             @Param("maChuyen") String maChuyen,
             @Param("maKien") String maKien,
@@ -63,7 +63,7 @@ public interface ChuyenGiaoRepository extends JpaRepository<ChuyenGiao, String> 
      * Tài xế xuất phát chuyến.
      */
     @Modifying
-    @Query(value = "EXEC sp_xuat_phat_chuyen :maChuyen, :maNd", nativeQuery = true)
+    @Query(value = "EXEC dbo.sp_xuat_phat_chuyen :maChuyen, :maNd", nativeQuery = true)
     void xuatPhatChuyen(
             @Param("maChuyen") String maChuyen,
             @Param("maNd") String maNd
@@ -73,7 +73,7 @@ public interface ChuyenGiaoRepository extends JpaRepository<ChuyenGiao, String> 
      * Giao thành công.
      */
     @Modifying
-    @Query(value = "EXEC sp_giao_thanh_cong :maChuyen, :maKien, :maNd, :ghiChu, :nguoiThu", nativeQuery = true)
+    @Query(value = "EXEC dbo.sp_giao_thanh_cong :maChuyen, :maKien, :maNd, :ghiChu, :nguoiThu", nativeQuery = true)
     void giaoThanhCong(
             @Param("maChuyen") String maChuyen,
             @Param("maKien") String maKien,
@@ -86,7 +86,7 @@ public interface ChuyenGiaoRepository extends JpaRepository<ChuyenGiao, String> 
      * Giao thất bại.
      */
     @Modifying
-    @Query(value = "EXEC sp_giao_that_bai :maChuyen, :maKien, :maNd, :lyDo", nativeQuery = true)
+    @Query(value = "EXEC dbo.sp_giao_that_bai :maChuyen, :maKien, :maNd, :lyDo", nativeQuery = true)
     void giaoThatBai(
             @Param("maChuyen") String maChuyen,
             @Param("maKien") String maKien,

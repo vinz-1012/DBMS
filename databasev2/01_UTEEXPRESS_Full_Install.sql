@@ -1,4 +1,4 @@
-﻿-- =========================================================================================
+-- =========================================================================================
 -- ĐỒ ÁN HỆ QUẢN TRỊ CƠ SỞ DỮ LIỆU: HỆ THỐNG QUẢN LÝ VẬN CHUYỂN UTEEXPRESS (SQL SERVER)
 -- FILE 01: CÀI ĐẶT TOÀN DIỆN (SCHEMA + LOGIC + TRANSACTION + SECURITY + FULL SEED DATA)
 -- Hướng dẫn: Chọn toàn bộ script và nhấn Execute (F5) một lần duy nhất.
@@ -16,6 +16,10 @@ GO
 CREATE DATABASE UTEEXPRESS;
 GO
 USE UTEEXPRESS;
+GO
+SET ANSI_NULLS ON;
+GO
+SET QUOTED_IDENTIFIER ON;
 GO
 
 -- =========================================================================================
@@ -1618,6 +1622,16 @@ BEGIN
                 INSERT INTO thanh_toan (ma_dh, loai_khoan, so_tien, phuong_thuc, trang_thai, nguoi_thanh_toan)
                 VALUES (@v_ma_dh, 'COD', @v_cod, N'COD', N'Đã thanh toán', COALESCE(@p_nguoi_thu, @v_ten_nhan));
             END
+
+            -- Khi giao thành công và thu tiền: cập nhật cước tiền mặt chưa thanh toán sang Đã thanh toán
+            UPDATE thanh_toan
+            SET trang_thai = N'Đã thanh toán',
+                thoi_gian = SYSDATETIME(),
+                nguoi_thanh_toan = COALESCE(@p_nguoi_thu, nguoi_thanh_toan)
+            WHERE ma_dh = @v_ma_dh
+              AND loai_khoan = 'PHI_VC'
+              AND trang_thai <> N'Đã thanh toán';
+
             UPDATE don_hang SET ma_tt = 'TT06' WHERE ma_dh = @v_ma_dh;
         END
 
