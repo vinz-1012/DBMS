@@ -59,19 +59,27 @@ function showToast(title, message, type = 'info') {
     }, 3500);
 }
 
-// 3. TÍNH CƯỚC PHÍ VẬN CHUYỂN TỰ ĐỘNG
-function calculateShippingFee(weightKg, lengthCm = 10, widthCm = 10, heightCm = 10, distanceKm = 10) {
-    const volWeight = (lengthCm * widthCm * heightCm) / 5000;
-    const chargeWeight = Math.max(parseFloat(weightKg) || 0, volWeight);
-    
-    let basePrice = 15000;
-    if (chargeWeight > 1) {
-        basePrice += Math.ceil(chargeWeight - 1) * 5000;
-    }
-    if (distanceKm > 10) {
-        basePrice += Math.ceil(distanceKm - 10) * 1000;
-    }
-    return basePrice;
+// 3. TÍNH CƯỚC PHÍ VẬN CHUYỂN TỰ ĐỘNG (Đồng bộ 100% với dbo.fn_tinh_phi_van_chuyen trong CSDL)
+function calculateShippingFee(weightKg, lengthCm = 10, widthCm = 10, heightCm = 10, distanceKm = 0) {
+    const w = parseFloat(weightKg) || 0;
+    const l = parseFloat(lengthCm) || 0;
+    const wi = parseFloat(widthCm) || 0;
+    const h = parseFloat(heightCm) || 0;
+    const dist = Math.max(0, parseFloat(distanceKm) || 0);
+
+    if (w <= 0 || l <= 0 || wi <= 0 || h <= 0) return 0;
+
+    const volWeight = (l * wi * h) / 5000;
+    const chargeWeight = Math.max(w, volWeight);
+    const kgVuot = Math.max(0, chargeWeight - 0.5);
+
+    const phiCoBan = 15000;
+    const phiKg = kgVuot * 5000;
+    const phiKm = dist * 300;
+
+    const tongPhi = phiCoBan + phiKg + phiKm;
+    // Làm tròn đến hàng trăm tương tự hàm ROUND(phi, -2) trong SQL Server
+    return Math.round(tongPhi / 100) * 100;
 }
 
 // 4. RENDER STATUS BADGE HELPER

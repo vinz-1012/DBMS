@@ -261,30 +261,34 @@ public class DieuPhoiService {
      */
     public DieuPhoiDashboardDTO getDashboardStats() {
         Long tongSoChuyen = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM chuyen_giao WHERE trang_thai <> 'Đã hủy'", Long.class);
+                "SELECT COUNT(*) FROM chuyen_giao WHERE trang_thai <> N'Đã hủy'", Long.class);
 
         Long chuyenChuaDi = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM chuyen_giao WHERE trang_thai = 'Chưa đi'", Long.class);
+                "SELECT COUNT(*) FROM chuyen_giao WHERE trang_thai = N'Chưa đi'", Long.class);
 
         Long chuyenDangDi = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM chuyen_giao WHERE trang_thai = 'Đang đi'", Long.class);
+                "SELECT COUNT(*) FROM chuyen_giao WHERE trang_thai = N'Đang đi'", Long.class);
 
         Long chuyenHoanThanh = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM chuyen_giao WHERE trang_thai = 'Hoàn thành'", Long.class);
+                "SELECT COUNT(*) FROM chuyen_giao WHERE trang_thai = N'Hoàn thành'", Long.class);
 
         Long donCanDieuPhoi = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM kien_hang WHERE ma_kho_hien_tai IS NOT NULL " +
                 "AND ma_kien NOT IN (SELECT c.ma_kien FROM chi_tiet_chuyen_giao c " +
-                "JOIN chuyen_giao cg ON cg.ma_chuyen = c.ma_chuyen WHERE cg.trang_thai IN ('Chưa đi', 'Đang đi'))",
+                "JOIN chuyen_giao cg ON cg.ma_chuyen = c.ma_chuyen WHERE cg.trang_thai IN (N'Chưa đi', N'Đang đi'))",
                 Long.class);
 
         Long taiXeKhaDung = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM tai_xe WHERE ma_tx NOT IN (" +
-                "SELECT ma_tx FROM chuyen_giao WHERE trang_thai = 'Đang đi')", Long.class);
+                "SELECT COUNT(*) FROM tai_xe tx " +
+                "LEFT JOIN nguoi_dung nd ON tx.ma_nd = nd.ma_nd " +
+                "WHERE COALESCE(nd.trang_thai, N'Hoạt động') = N'Hoạt động' " +
+                "AND tx.ma_tx NOT IN (" +
+                "SELECT c.ma_tx FROM chuyen_giao c WHERE c.trang_thai = N'Đang đi')", Long.class);
 
         Long phuongTienKhaDung = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM phuong_tien WHERE trang_thai = 'Sẵn sàng' AND ma_pt NOT IN (" +
-                "SELECT ma_pt FROM chuyen_giao WHERE trang_thai = 'Đang đi')", Long.class);
+                "SELECT COUNT(*) FROM phuong_tien pt " +
+                "WHERE pt.trang_thai = N'Sẵn sàng' AND pt.ma_pt NOT IN (" +
+                "SELECT c.ma_pt FROM chuyen_giao c WHERE c.trang_thai = N'Đang đi')", Long.class);
 
         List<ChuyenGiaoChiTietDTO> recentTrips = getChuyenGiaoChiTietList();
         if (recentTrips.size() > 5) {
@@ -333,7 +337,7 @@ public class DieuPhoiService {
               AND k.ma_kien NOT IN (
                   SELECT c.ma_kien FROM chi_tiet_chuyen_giao c
                   JOIN chuyen_giao cg ON cg.ma_chuyen = c.ma_chuyen
-                  WHERE cg.trang_thai IN ('Chưa đi', 'Đang đi')
+                  WHERE cg.trang_thai IN (N'Chưa đi', N'Đang đi')
               )
             ORDER BY k.ma_kien ASC
         """;
@@ -394,7 +398,7 @@ public class DieuPhoiService {
               AND k.ma_kien NOT IN (
                   SELECT c.ma_kien FROM chi_tiet_chuyen_giao c
                   JOIN chuyen_giao cg ON cg.ma_chuyen = c.ma_chuyen
-                  WHERE cg.trang_thai IN ('Chưa đi', 'Đang đi')
+                  WHERE cg.trang_thai IN (N'Chưa đi', N'Đang đi')
               )
         """);
 
@@ -462,7 +466,9 @@ public class DieuPhoiService {
                    t.ma_kho_den,
                    COALESCE(kden.ten_kho, 'Địa chỉ khách hàng') AS ten_diem_den,
                    c.ma_tx, tx.ho_ten AS ten_tai_xe, c.ma_pt, pt.bien_so, pt.tai_trong,
-                   c.ma_nv_dieu_phoi, c.ngay_xuat_phat, c.ngay_den_du_kien,
+                   c.ma_nv_dieu_phoi,
+                   COALESCE(c.ngay_xuat_phat_thuc, c.ngay_xuat_phat) AS ngay_xuat_phat,
+                   c.ngay_den_du_kien,
                    COALESCE(ct.so_kien, 0) AS so_kien, COALESCE(ct.tong_kg, 0) AS tong_kg,
                    CASE WHEN pt.tai_trong > 0 THEN ROUND(100.0 * COALESCE(ct.tong_kg, 0) / pt.tai_trong, 1) ELSE 0 END AS ty_le_tai
             FROM chuyen_giao c
@@ -477,8 +483,8 @@ public class DieuPhoiService {
                 JOIN kien_hang k ON k.ma_kien = x.ma_kien
                 GROUP BY x.ma_chuyen
             ) ct ON ct.ma_chuyen = c.ma_chuyen
-            WHERE c.trang_thai = 'Đang đi'
-            ORDER BY c.ngay_xuat_phat ASC
+            WHERE c.trang_thai = N'Đang đi'
+            ORDER BY COALESCE(c.ngay_xuat_phat_thuc, c.ngay_xuat_phat) DESC, c.ma_chuyen DESC
         """;
 
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
@@ -510,7 +516,7 @@ public class DieuPhoiService {
     }
 
     /**
-     * STT 3: Danh sách tài xế khả dụng (không bị trùng lịch chuyến đang chạy)
+     * STT 3: Danh sách tài xế khả dụng (tài khoản hoạt động và không bị trùng lịch chuyến đang chạy)
      */
     public List<TaiXeKhaDungDTO> getTaiXeKhaDungList() {
         String sql = """
@@ -519,7 +525,7 @@ public class DieuPhoiService {
                 tx.ho_ten,
                 tx.sdt,
                 tx.bang_lai,
-                COALESCE(nd.trang_thai, 'Hoạt động') AS trang_thai_tk,
+                COALESCE(nd.trang_thai, N'Hoạt động') AS trang_thai_tk,
                 cg.ma_chuyen,
                 cg.trang_thai AS trang_thai_chuyen
             FROM tai_xe tx
@@ -527,11 +533,12 @@ public class DieuPhoiService {
             OUTER APPLY (
                 SELECT TOP 1 c.ma_chuyen, c.trang_thai
                 FROM chuyen_giao c
-                WHERE c.ma_tx = tx.ma_tx AND c.trang_thai IN ('Chưa đi', 'Đang đi')
-                ORDER BY CASE WHEN c.trang_thai = 'Đang đi' THEN 1 ELSE 2 END
+                WHERE c.ma_tx = tx.ma_tx AND c.trang_thai IN (N'Chưa đi', N'Đang đi')
+                ORDER BY CASE WHEN c.trang_thai = N'Đang đi' THEN 1 ELSE 2 END, c.ngay_xuat_phat ASC
             ) cg
-            WHERE tx.ma_tx NOT IN (
-                SELECT c2.ma_tx FROM chuyen_giao c2 WHERE c2.trang_thai = 'Đang đi'
+            WHERE COALESCE(nd.trang_thai, N'Hoạt động') = N'Hoạt động'
+              AND tx.ma_tx NOT IN (
+                SELECT c2.ma_tx FROM chuyen_giao c2 WHERE c2.trang_thai = N'Đang đi'
             )
             ORDER BY tx.ma_tx ASC
         """;
@@ -575,12 +582,12 @@ public class DieuPhoiService {
             OUTER APPLY (
                 SELECT TOP 1 c.ma_chuyen
                 FROM chuyen_giao c
-                WHERE c.ma_pt = pt.ma_pt AND c.trang_thai IN ('Chưa đi', 'Đang đi')
-                ORDER BY CASE WHEN c.trang_thai = 'Đang đi' THEN 1 ELSE 2 END
+                WHERE c.ma_pt = pt.ma_pt AND c.trang_thai IN (N'Chưa đi', N'Đang đi')
+                ORDER BY CASE WHEN c.trang_thai = N'Đang đi' THEN 1 ELSE 2 END, c.ngay_xuat_phat ASC
             ) cg
-            WHERE pt.trang_thai = 'Sẵn sàng'
+            WHERE pt.trang_thai = N'Sẵn sàng'
               AND pt.ma_pt NOT IN (
-                  SELECT c2.ma_pt FROM chuyen_giao c2 WHERE c2.trang_thai = 'Đang đi'
+                  SELECT c2.ma_pt FROM chuyen_giao c2 WHERE c2.trang_thai = N'Đang đi'
               )
             ORDER BY pt.ma_pt ASC
         """;

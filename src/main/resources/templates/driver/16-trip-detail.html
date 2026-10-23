@@ -143,6 +143,7 @@
         let currentTripId = '';
         let currentTripData = null;
         let currentTripPkgsList = [];
+        let allDriverTrips = [];
 
         const tripPkgsPagination = new TablePagination({
             containerId: 'tripPkgsPagination',
@@ -175,6 +176,7 @@
 
                 if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
                     const trips = res.data;
+                    allDriverTrips = trips;
                     select.innerHTML = trips.map(t => 
                         `<option value="${t.maChuyen}">${t.maChuyen} - ${t.loaiChuyen} (${t.trangThai})</option>`
                     ).join('');
@@ -333,9 +335,21 @@
                 }
             }
 
+            const otherRunningTrip = allDriverTrips.find(tr => tr.maChuyen !== t.maChuyen && tr.trangThai === 'Đang đi');
+
             if (t.trangThai === 'Chưa đi') {
                 startBtn.style.display = 'inline-block';
-                startBtn.innerText = '🚚 Xuất phát chuyến';
+                if (otherRunningTrip) {
+                    startBtn.disabled = true;
+                    startBtn.className = 'btn btn-secondary btn-sm';
+                    startBtn.innerText = `⛔ Đang chạy chuyến ${otherRunningTrip.maChuyen}`;
+                    startBtn.title = `Bạn đang có chuyến ${otherRunningTrip.maChuyen} đang thực hiện trên đường. Phải hoàn thành chuyến đó trước khi xuất phát chuyến này!`;
+                } else {
+                    startBtn.disabled = false;
+                    startBtn.className = 'btn btn-primary btn-sm';
+                    startBtn.innerText = '🚚 Xuất phát chuyến';
+                    startBtn.title = 'Bắt đầu hành trình vận chuyển';
+                }
                 completeBtn.style.display = 'none';
                 scanBtn.style.display = 'inline-block';
             } else if (t.trangThai === 'Đang đi') {
@@ -487,6 +501,13 @@
 
         async function handleStartTrip() {
             if (!currentTripId) return;
+
+            const otherRunningTrip = allDriverTrips.find(tr => tr.maChuyen !== currentTripId && tr.trangThai === 'Đang đi');
+            if (otherRunningTrip) {
+                alert(`Bạn đang có chuyến ${otherRunningTrip.maChuyen} đang ở trạng thái "Đang đi". Vui lòng hoàn thành chuyến đó trước khi xuất phát chuyến mới!`);
+                return;
+            }
+
             if (!confirm(`Bạn có chắc chắn muốn xuất phát chuyến ${currentTripId}?`)) return;
 
             const driverId = getCurrentDriverId();

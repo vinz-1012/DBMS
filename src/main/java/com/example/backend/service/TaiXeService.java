@@ -6,6 +6,7 @@ import com.example.backend.dto.taixe.*;
 import com.example.backend.entity.ChiTietChuyenGiao;
 import com.example.backend.entity.ChuyenGiao;
 import com.example.backend.entity.TaiXe;
+import com.example.backend.exception.BusinessException;
 import com.example.backend.repository.ChiTietChuyenGiaoRepository;
 import com.example.backend.repository.ChuyenGiaoRepository;
 import com.example.backend.repository.TaiXeRepository;
@@ -214,10 +215,10 @@ public class TaiXeService {
                 JOIN kien_hang k ON k.ma_kien = x.ma_kien
                 GROUP BY x.ma_chuyen
             ) ct ON ct.ma_chuyen = c.ma_chuyen
-            WHERE c.ma_tx = ? AND c.trang_thai <> 'Đã hủy'
+            WHERE c.ma_tx = ? AND c.trang_thai <> N'Đã hủy'
             ORDER BY 
-                CASE WHEN c.trang_thai = 'Đang đi' THEN 1 
-                     WHEN c.trang_thai = 'Chưa đi' THEN 2 
+                CASE WHEN c.trang_thai = N'Đang đi' THEN 1 
+                     WHEN c.trang_thai = N'Chưa đi' THEN 2 
                      ELSE 3 END,
                 c.ngay_xuat_phat DESC, c.ma_chuyen DESC
         """;
@@ -268,8 +269,8 @@ public class TaiXeService {
             JOIN kien_hang k ON k.ma_kien = x.ma_kien
             LEFT JOIN don_hang d ON d.ma_dh = k.ma_dh
             WHERE c.ma_tx = ? 
-              AND c.trang_thai IN ('Chưa đi', 'Đang đi')
-              AND x.trang_thai IN ('Đã gán', 'Đã quét')
+              AND c.trang_thai IN (N'Chưa đi', N'Đang đi')
+              AND x.trang_thai IN (N'Đã gán', N'Đã quét')
             ORDER BY c.ma_chuyen ASC, x.thoi_gian_gan ASC
         """;
 
@@ -320,7 +321,7 @@ public class TaiXeService {
                 WHERE ls_inner.ma_dh = k.ma_dh AND ls_inner.ma_tt = 'TT06'
                 ORDER BY ls_inner.thoi_gian DESC
             ) ls
-            WHERE c.ma_tx = ? AND x.trang_thai = 'Đã giao'
+            WHERE c.ma_tx = ? AND x.trang_thai = N'Đã giao'
             ORDER BY thoi_gian_giao DESC, x.thoi_gian_gan DESC
         """;
 
@@ -372,29 +373,29 @@ public class TaiXeService {
         String tenTx = tx != null ? tx.getHoTen() : "Tài xế";
 
         Long chuyenPhanCong = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM chuyen_giao WHERE ma_tx = ? AND trang_thai <> 'Đã hủy'",
+                "SELECT COUNT(*) FROM chuyen_giao WHERE ma_tx = ? AND trang_thai <> N'Đã hủy'",
                 Long.class, maTx);
 
         Long chuyenDangThucHien = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM chuyen_giao WHERE ma_tx = ? AND trang_thai = 'Đang đi'",
+                "SELECT COUNT(*) FROM chuyen_giao WHERE ma_tx = ? AND trang_thai = N'Đang đi'",
                 Long.class, maTx);
 
         Long kienCanGiao = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM chi_tiet_chuyen_giao x " +
                 "JOIN chuyen_giao c ON c.ma_chuyen = x.ma_chuyen " +
-                "WHERE c.ma_tx = ? AND c.trang_thai IN ('Chưa đi', 'Đang đi') AND x.trang_thai <> 'Đã giao'",
+                "WHERE c.ma_tx = ? AND c.trang_thai IN (N'Chưa đi', N'Đang đi') AND x.trang_thai <> N'Đã giao'",
                 Long.class, maTx);
 
         Long kienDaGiao = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM chi_tiet_chuyen_giao x " +
                 "JOIN chuyen_giao c ON c.ma_chuyen = x.ma_chuyen " +
-                "WHERE c.ma_tx = ? AND x.trang_thai = 'Đã giao'",
+                "WHERE c.ma_tx = ? AND x.trang_thai = N'Đã giao'",
                 Long.class, maTx);
 
         // Lấy chuyến đang chạy hoặc chuyến mới nhất của tài xế
         List<String> tripIds = jdbcTemplate.query(
                 "SELECT TOP 1 ma_chuyen FROM chuyen_giao WHERE ma_tx = ? " +
-                "ORDER BY CASE WHEN trang_thai = 'Đang đi' THEN 1 WHEN trang_thai = 'Chưa đi' THEN 2 ELSE 3 END, ngay_xuat_phat DESC",
+                "ORDER BY CASE WHEN trang_thai = N'Đang đi' THEN 1 WHEN trang_thai = N'Chưa đi' THEN 2 ELSE 3 END, ngay_xuat_phat DESC",
                 (rs, rowNum) -> rs.getString("ma_chuyen"), maTx);
 
         ChuyenGiaoChiTietDTO chuyenHienTai = null;
@@ -427,9 +428,24 @@ public class TaiXeService {
 
     /**
      * Xuất phát chuyến.
+     * Kiểm tra đảm bảo tài xế không thể cùng lúc xuất phát nhiều chuyến đang đi.
      */
     @Transactional
     public void xuatPhatChuyen(String maChuyen, String maNd) {
+        ChuyenGiao cg = chuyenGiaoRepository.findById(maChuyen)
+                .orElseThrow(() -> new BusinessException("Không tìm thấy chuyến giao: " + maChuyen));
+
+        String maTx = cg.getMaTx();
+        if (maTx != null && !maTx.isBlank()) {
+            List<String> dangDiTrips = jdbcTemplate.query(
+                    "SELECT ma_chuyen FROM chuyen_giao WHERE ma_tx = ? AND ma_chuyen <> ? AND trang_thai = N'Đang đi'",
+                    (rs, rowNum) -> rs.getString("ma_chuyen"),
+                    maTx, maChuyen);
+            if (!dangDiTrips.isEmpty()) {
+                throw new BusinessException("Tài xế đang thực hiện chuyến " + dangDiTrips.get(0) + " (Đang đi). Vui lòng hoàn thành chuyến hiện tại trước khi xuất phát chuyến mới!");
+            }
+        }
+
         chuyenGiaoRepository.xuatPhatChuyen(maChuyen, maNd);
     }
 
@@ -445,11 +461,11 @@ public class TaiXeService {
         try {
             jdbcTemplate.update("""
                 UPDATE thanh_toan
-                SET trang_thai = 'Đã thanh toán',
+                SET trang_thai = N'Đã thanh toán',
                     thoi_gian = CURRENT_TIMESTAMP,
                     nguoi_thanh_toan = COALESCE(?, nguoi_thanh_toan)
                 WHERE ma_dh = (SELECT ma_dh FROM kien_hang WHERE ma_kien = ?)
-                  AND (trang_thai IS NULL OR (trang_thai <> 'Đã thanh toán' AND trang_thai <> 'DA_THANH_TOAN'))
+                  AND (trang_thai IS NULL OR (trang_thai <> N'Đã thanh toán' AND trang_thai <> 'DA_THANH_TOAN'))
             """, (nguoiThu != null && !nguoiThu.isBlank()) ? nguoiThu : maNd, maKien);
         } catch (Exception ex) {
             log.warn("Lỗi cập nhật trạng thái thanh toán khi giao kiện {}: {}", maKien, ex.getMessage());
@@ -477,7 +493,7 @@ public class TaiXeService {
         // Nghiệp vụ: Chuyến đang giao mà chưa có kết quả hết các kiện -> Đang đi
         // Có kiện thành công, có kiện thất bại HOẶC Tất cả kiện đều giao thất bại -> Hoàn thành
         Integer remaining = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM chi_tiet_chuyen_giao WHERE ma_chuyen = ? AND trang_thai NOT IN ('Đã giao', 'Thất bại')",
+                "SELECT COUNT(*) FROM chi_tiet_chuyen_giao WHERE ma_chuyen = ? AND trang_thai NOT IN (N'Đã giao', N'Thất bại')",
                 Integer.class, maChuyen);
 
         if (remaining != null && remaining == 0) {

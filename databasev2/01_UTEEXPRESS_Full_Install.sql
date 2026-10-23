@@ -881,6 +881,13 @@ BEGIN
 
         IF @new_tt = N'Đang đi'
         BEGIN
+            DECLARE @v_ma_tx VARCHAR(20) = (SELECT ma_tx FROM inserted);
+            IF EXISTS (
+                SELECT 1 FROM chuyen_giao 
+                WHERE ma_tx = @v_ma_tx AND ma_chuyen <> @ma_chuyen AND trang_thai = N'Đang đi'
+            )
+                THROW 50016, N'Tài xế đang có một chuyến khác đang thực hiện (Đang đi), không thể xuất phát thêm chuyến mới', 1;
+
             DECLARE @v_so INT, @v_chua INT;
             SELECT @v_so = COUNT(*),
                    @v_chua = ISNULL(SUM(CASE WHEN trang_thai <> N'Đã quét' THEN 1 ELSE 0 END), 0)
@@ -1543,6 +1550,17 @@ AS
 BEGIN
     SET NOCOUNT ON;
     EXEC sp_dat_phien @p_ma_nd;
+
+    DECLARE @v_ma_tx VARCHAR(20);
+    SELECT @v_ma_tx = ma_tx FROM chuyen_giao WHERE ma_chuyen = @p_ma_chuyen;
+    IF @v_ma_tx IS NULL THROW 50136, N'Không tìm thấy chuyến giao', 1;
+
+    IF EXISTS (
+        SELECT 1 FROM chuyen_giao 
+        WHERE ma_tx = @v_ma_tx AND ma_chuyen <> @p_ma_chuyen AND trang_thai = N'Đang đi'
+    )
+        THROW 50138, N'Tài xế đang có một chuyến khác đang thực hiện (Đang đi). Vui lòng hoàn thành chuyến hiện tại trước khi xuất phát chuyến mới!', 1;
+
     UPDATE chuyen_giao SET trang_thai = N'Đang đi' WHERE ma_chuyen = @p_ma_chuyen;
     IF @@ROWCOUNT = 0 THROW 50136, N'Không tìm thấy chuyến giao', 1;
 END;

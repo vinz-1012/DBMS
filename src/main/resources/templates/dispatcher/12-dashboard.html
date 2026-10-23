@@ -281,14 +281,6 @@
 
                     <!-- PANE 1: ĐƠN CẦN ĐIỀU PHỐI (STT 1) -->
                     <div class="tab-pane active" id="tabPane1">
-                        <div
-                            style="padding: 12px 20px; background: #FEF2F2; border-bottom: 1px solid #FEE2E2; font-size: 13.5px; color: #991B1B; display: flex; align-items: center; justify-content: space-between;">
-                            <div>
-                                📌 <strong>Tổng số đơn/kiện đang chờ điều phối, chờ xuất bến:</strong> Nhân viên kiểm
-                                tra và gán vào các chuyến liên kho hoặc giao cuối phù hợp.
-                            </div>
-
-                        </div>
                         <div class="table-responsive">
                             <table class="table">
                                 <thead>
@@ -317,11 +309,6 @@
 
                     <!-- PANE 2: CHUYẾN ĐANG CHẠY (STT 2) -->
                     <div class="tab-pane" id="tabPane2">
-                        <div
-                            style="padding: 12px 20px; background: #EFF6FF; border-bottom: 1px solid #DBEAFE; font-size: 13.5px; color: #1E40AF;">
-                            🚚 <strong>Danh sách các chuyến đang chạy (trạng thái: Đang đi):</strong> Giám sát thời gian
-                            xuất phát, thời gian dự kiến và tình trạng kiện hàng trên từng chuyến.
-                        </div>
                         <div class="table-responsive">
                             <table class="table">
                                 <thead>
@@ -351,11 +338,6 @@
 
                     <!-- PANE 3: TÀI XẾ KHẢ DỤNG (STT 3) -->
                     <div class="tab-pane" id="tabPane3">
-                        <div
-                            style="padding: 12px 20px; background: #ECFDF5; border-bottom: 1px solid #D1FAE5; font-size: 13.5px; color: #065F46;">
-                            👨‍✈️ <strong>Danh sách tài xế khả dụng:</strong> Các tài xế đang sẵn sàng nhận phân công,
-                            không bị trùng lịch chuyến đang vận chuyển.
-                        </div>
                         <div class="table-responsive">
                             <table class="table">
                                 <thead>
@@ -383,11 +365,6 @@
 
                     <!-- PANE 4: XE KHẢ DỤNG (STT 4) -->
                     <div class="tab-pane" id="tabPane4">
-                        <div
-                            style="padding: 12px 20px; background: #FFFBEB; border-bottom: 1px solid #FEF3C7; font-size: 13.5px; color: #92400E;">
-                            🚛 <strong>Danh sách xe khả dụng:</strong> Các phương tiện có trạng thái Sẵn sàng, không bảo
-                            trì và không bị trùng lịch chuyến đang chạy.
-                        </div>
                         <div class="table-responsive">
                             <table class="table">
                                 <thead>
@@ -439,7 +416,7 @@
                         <tbody id="modalKienTableBody">
                             <tr>
                                 <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 16px;">
-                                     Đang tải...</td>
+                                    Đang tải...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -706,7 +683,7 @@
 
             tbody.innerHTML = list.map(item => {
                 const isSameWh = (item.maKhoHienTai && item.maKhoNhan && item.maKhoHienTai === item.maKhoNhan);
-                const suggestedRoute = isSameWh 
+                const suggestedRoute = isSameWh
                     ? `<span class="badge badge-success" style="font-size: 10.5px; padding: 2px 6px;">🚚 Đề xuất: Giao cuối</span>`
                     : `<span class="badge badge-primary" style="font-size: 10.5px; padding: 2px 6px;">🚛 Đề xuất: Liên kho (${item.maKhoHienTai || '?'} ➔ ${item.maKhoNhan || '?'})</span>`;
                 const khoNhan = item.tenKhoNhan ? `Kho nhận: ${item.tenKhoNhan}` : (item.diaChiGiao || '---');
